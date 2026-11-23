@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Work & Earn Platform (Firebase Live)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Hind Siliguri', sans-serif; background-color: #f3f4f6; }
+  </style>
+</head>
+<body class="text-gray-800">
+  <!-- লগইন / সাইনআপ স্ক্রিন -->
+  <div id="authSection" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md space-y-5">
+      <div>
+        <h1 class="text-2xl font-bold text-center text-indigo-600 mb-1">স্বাগতম!</h1>
+        <p class="text-center text-gray-500 text-sm">কাজ করুন, আয় করুন এবং সবার সাথে যুক্ত থাকুন</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">আপনার নাম (নতুন অ্যাকাউন্টের জন্য ঐচ্ছিক)</label>
+          <input type="text" id="userName" placeholder="যেমন: রাফি আহমেদ" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <button id="authSubmitBtn" onclick="loginWithGoogle()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition">
+          Google (Gmail) দিয়ে লগইন / অ্যাকাউন্ট খুলুন
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- মেইন অ্যাপ স্ক্রিন -->
+  <div id="appSection" class="hidden max-w-2xl mx-auto pb-20">
+    <header class="bg-indigo-600 text-white p-4 sticky top-0 z-10 shadow-md flex justify-between items-center">
+      <div>
+        <h2 class="font-bold text-lg" id="navUserName">ইউজার</h2>
+        <p class="text-xs text-indigo-200" id="navUserEmail">user@gmail.com</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="bg-indigo-800 px-3 py-1 rounded-full text-sm font-semibold">৳ <span id="userBalance">0</span></span>
+        <button onclick="openAdminModal()" class="bg-amber-500 hover:bg-amber-600 text-xs font-bold px-3 py-1.5 rounded-lg">অ্যাডমিন</button>
+        <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-xs font-bold px-3 py-1.5 rounded-lg">লগআউট</button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-3 bg-white border-b sticky top-16 z-10 text-sm font-semibold">
+      <button onclick="switchTab('tasksTab')" id="btnTasksTab" class="py-3 text-indigo-600 border-b-2 border-indigo-600">কাজসমূহ</button>
+      <button onclick="switchTab('feedTab')" id="btnFeedTab" class="py-3 text-gray-500">পোস্ট ও চ্যাট</button>
+      <button onclick="switchTab('profileTab')" id="btnProfileTab" class="py-3 text-gray-500">আমার প্রোফাইল</button>
+    </div>
+
+    <!-- ১. কাজসমূহ ট্যাব -->
+    <div id="tasksTab" class="p-4 space-y-4">
+      <div class="bg-indigo-50 border border-indigo-200 p-3 rounded-xl text-sm text-indigo-800">
+        সাধারণ কাজগুলো ফ্রি-তে করতে পারবেন। <b>প্রিমিয়াম কাজ</b> আনলক করতে বিকাশ/নগদ-এ পেমেন্ট করে TrxID দিন।
+      </div>
+      <div id="tasksList" class="space-y-3"></div>
+    </div>
+
+    <!-- ২. পোস্ট ও চ্যাট ট্যাব -->
+    <div id="feedTab" class="hidden p-4 space-y-4">
+      <div class="bg-white p-4 rounded-xl shadow-sm space-y-3">
+        <textarea id="postText" rows="2" placeholder="সবার সাথে কিছু শেয়ার করুন বা কথা বলুন..." class="w-full border rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        <div class="flex justify-between items-center">
+          <input type="file" id="postImageInput" accept="image/*" class="text-xs text-gray-500">
+          <button onclick="createPost()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold">পোস্ট করুন</button>
+        </div>
+      </div>
+      <div id="postsList" class="space-y-4"></div>
+    </div>
+
+    <!-- ৩. প্রোফাইল ট্যাব -->
+    <div id="profileTab" class="hidden p-4 space-y-4">
+      <div class="bg-white p-5 rounded-xl shadow-sm text-center space-y-2">
+        <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold mx-auto" id="profileAvatar">U</div>
+        <h3 class="text-xl font-bold" id="profileName">নাম</h3>
+        <p class="text-sm text-gray-500" id="profileEmail">email@gmail.com</p>
+        <div class="pt-2 flex justify-center gap-4">
+          <div class="bg-green-50 px-4 py-2 rounded-lg">
+            <p class="text-xs text-gray-500">মোট আয়</p>
+            <p class="font-bold text-green-600 text-lg">৳ <span id="profileBalance">0</span></p>
+          </div>
+          <div class="bg-blue-50 px-4 py-2 rounded-lg">
+            <p class="text-xs text-gray-500">জমাকৃত কাজ</p>
+            <p class="font-bold text-blue-600 text-lg" id="profileWorkCount">0</p>
+          </div>
+        </div>
+      </div>
+      <h4 class="font-bold text-gray-700">আমার কাজের ইতিহাস</h4>
+      <div id="mySubmissionsList" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- কাজ জমা দেওয়ার মডাল -->
+  <div id="submitWorkModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-md space-y-4">
+      <h3 class="font-bold text-lg" id="modalTaskTitle">কাজ জমা দিন</h3>
+      <p class="text-sm text-gray-600" id="modalTaskDesc"></p>
+      <textarea id="workProofText" rows="3" placeholder="কাজের প্রমাণ বা লিংক এখানে লিখুন..." class="w-full border rounded-lg p-2.5 text-sm"></textarea>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('submitWorkModal')" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">বাতিল</button>
+        <button onclick="confirmSubmitWork()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold">জমা দিন</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- প্রিমিয়াম কাজ কেনার মডাল -->
+  <div id="buyPremiumModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-md space-y-4">
+      <h3 class="font-bold text-lg text-amber-600">প্রিমিয়াম কাজ আনলক করুন</h3>
+      <p class="text-sm">এই কাজটি আনলক করতে <b id="premiumPriceText">৳0</b> নিচের নম্বরে Send Money করুন:</p>
+      <div class="bg-gray-100 p-3 rounded-lg text-sm space-y-1">
+        <p><b>বিকাশ (Personal):</b> <span id="displayBkash" class="text-pink-600 font-bold">সেট করা নেই</span></p>
+        <p><b>নগদ (Personal):</b> <span id="displayNagad" class="text-orange-600 font-bold">সেট করা নেই</span></p>
+      </div>
+      <input type="text" id="paymentSenderNum" placeholder="আপনার বিকাশ/নগদ নম্বর" class="w-full border rounded-lg p-2 text-sm">
+      <input type="text" id="paymentTrxId" placeholder="Transaction ID (TrxID)" class="w-full border rounded-lg p-2 text-sm">
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('buyPremiumModal')" class="px-4 py-2 bg-gray-200 rounded-lg text-sm">বাতিল</button>
+        <button onclick="submitPremiumPurchase()" class="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold">পেমেন্ট তথ্য পাঠান</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- অ্যাডমিন প্যানেল মডাল -->
+  <div id="adminModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-3 z-50 overflow-y-auto">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-5">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-xl text-indigo-700">অ্যাডমিন কন্ট্রোল প্যানেল</h3>
+        <button onclick="closeModal('adminModal')" class="text-red-500 font-bold text-lg">✕</button>
+      </div>
+
+      <div id="adminPinScreen" class="py-8 text-center space-y-3">
+        <p class="text-sm text-gray-600">অ্যাডমিন প্যানেলে প্রবেশ করতে আপনার গোপন পিন দিন (ডিফল্ট: 1234)</p>
+        <input type="password" id="adminPinInput" placeholder="পিন লিখুন" class="border px-4 py-2 rounded-lg text-center text-lg tracking-widest">
+        <br>
+        <button onclick="verifyAdminPin()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold">প্রবেশ করুন</button>
+      </div>
+
+      <div id="adminContent" class="hidden space-y-6">
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div class="bg-indigo-50 p-3 rounded-xl">
+            <p class="text-xs text-gray-500">মোট ইউজার</p>
+            <p class="text-xl font-bold text-indigo-700" id="statTotalUsers">0</p>
+          </div>
+          <div class="bg-amber-50 p-3 rounded-xl">
+            <p class="text-xs text-gray-500">পেন্ডিং কাজ</p>
+            <p class="text-xl font-bold text-amber-700" id="statPendingWorks">0</p>
+          </div>
+          <div class="bg-pink-50 p-3 rounded-xl">
+            <p class="text-xs text-gray-500">প্রিমিয়াম রিকোয়েস্ট</p>
+            <p class="text-xl font-bold text-pink-700" id="statPendingPayments">0</p>
+          </div>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-xl space-y-3 border">
+          <h4 class="font-bold text-sm text-gray-700">পেমেন্ট নম্বর ও পিন সেটিংস</h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <input type="text" id="adminBkashInput" placeholder="বিকাশ নম্বর" class="border p-2 rounded-lg text-sm">
+            <input type="text" id="adminNagadInput" placeholder="নগদ নম্বর" class="border p-2 rounded-lg text-sm">
+            <input type="text" id="adminNewPinInput" placeholder="নতুন অ্যাডমিন পিন" class="border p-2 rounded-lg text-sm">
+          </div>
+          <button onclick="saveAdminSettings()" class="bg-gray-800 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">সেটিংস সেভ করুন</button>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-xl space-y-3 border">
+          <h4 class="font-bold text-sm text-gray-700">নতুন কাজ যোগ করুন</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <input type="text" id="newTaskTitle" placeholder="কাজের শিরোনাম" class="border p-2 rounded-lg text-sm">
+            <input type="number" id="newTaskReward" placeholder="কাজের মূল্য (টাকা)" class="border p-2 rounded-lg text-sm">
+            <select id="newTaskType" onchange="togglePriceInput()" class="border p-2 rounded-lg text-sm">
+              <option value="free">ফ্রি কাজ (সবার জন্য)</option>
+              <option value="premium">প্রিমিয়াম কাজ (টাকা দিয়ে কিনতে হবে)</option>
+            </select>
+            <input type="number" id="newTaskBuyPrice" placeholder="কেনার ফি (টাকা)" class="hidden border p-2 rounded-lg text-sm">
+          </div>
+          <textarea id="newTaskDesc" rows="2" placeholder="কাজের বিস্তারিত নিয়মাবলী..." class="w-full border p-2 rounded-lg text-sm"></textarea>
+          <button onclick="addNewTask()" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">কাজ পাবলিশ করুন</button>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-sm text-gray-700 mb-2">প্রিমিয়াম কাজের পেমেন্ট রিকোয়েস্ট</h4>
+          <div id="adminPaymentsList" class="space-y-2 text-sm"></div>
+        </div>
+        <div>
+          <h4 class="font-bold text-sm text-gray-700 mb-2">ইউজারদের জমাকৃত কাজ</h4>
+          <div id="adminSubmissionsList" class="space-y-2 text-sm"></div>
+        </div>
+        <div>
+          <h4 class="font-bold text-sm text-gray-700 mb-2">সকল ইউজার তালিকা</h4>
+          <div id="adminUsersList" class="space-y-2 text-sm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc,
+      onSnapshot, query, where, orderBy, arrayUnion, increment, writeBatch, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0rYwxXYukhY3ki8E2_7YRA9DlIL8SK5E",
+      authDomain: "ai-studio-applet-webapp-cf6ce.firebaseapp.com",
+      projectId: "ai-studio-applet-webapp-cf6ce",
+      storageBucket: "ai-studio-applet-webapp-cf6ce.firebasestorage.app",
+      messagingSenderId: "352788652430",
+      appId: "1:352788652430:web:982d78df2fd754d44d04df"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app, "ai-studio-240bbd06-9e8b-4aa4-a485-36104af1b68b");
+    const googleProvider = new GoogleAuthProvider();
+
+    const ADMIN_EMAIL = "mmaruf8085@gmail.com";
+    let state = {
+      adminPin: "1234",
+      bkash: "01700000000",
+      nagad: "01800000000",
+      currentUser: null,
+      users: [],
+      tasks: [],
+      submissions: [],
+      premiumRequests: [],
+      posts: []
+    };
+    let selectedTaskId = null;
+    let unsubscribers = [];
+
+    function clearListeners() {
+      unsubscribers.forEach(fn => fn());
+      unsubscribers = [];
+    }
+
+    onAuthStateChanged(auth, async (fbUser) => {
+      clearListeners();
+      if (!fbUser) {
+        state.currentUser = null;
+        document.getElementById("authSection").classList.remove("hidden");
+        document.getElementById("appSection").classList.add("hidden");
+        return;
+      }
+
+      const userRef = doc(db, "users", fbUser.uid);
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        const inputName = document.getElementById("userName").value.trim();
+        await setDoc(userRef, {
+          uid: fbUser.uid,
+          name: inputName || fbUser.displayName || "ইউজার",
+          email: fbUser.email || "",
+          photoURL: fbUser.photoURL || "",
+          balance: 0,
+          unlockedTasks: [],
+          blocked: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      if (fbUser.email === ADMIN_EMAIL) {
+        const sRef = doc(db, "settings", "platform");
+        if (!(await getDoc(sRef)).exists()) {
+          await setDoc(sRef, { bkash: "01700000000", nagad: "01800000000", updatedAt: serverTimestamp() });
+        }
+        const pinRef = doc(db, "settings", "adminSecrets");
+        if (!(await getDoc(pinRef)).exists()) {
+          await setDoc(pinRef, { adminPin: "1234", updatedAt: serverTimestamp() });
+        }
+      }
+
+      startListeners(fbUser);
+    });
+
+    function startListeners(fbUser) {
+      unsubscribers.push(
+        onSnapshot(doc(db, "users", fbUser.uid), (snap) => {
+          if (!snap.exists()) return logout();
+          const me = snap.data();
+          if (me.blocked) {
+            alert("অ্যাডমিন আপনার অ্যাকাউন্টটি ব্লক করেছেন।");
+            return logout();
+          }
+          state.currentUser = me;
+          updateUserUI(me);
+          renderTasks();
+        })
+      );
+
+      unsubscribers.push(
+        onSnapshot(doc(db, "settings", "platform"), (snap) => {
+          if (snap.exists()) {
+            state.bkash = snap.data().bkash || "";
+            state.nagad = snap.data().nagad || "";
+          }
+        })
+      );
+
+      unsubscribers.push(
+        onSnapshot(query(collection(db, "tasks"), orderBy("createdAt", "desc")), (snap) => {
+          state.tasks = snap.docs.map(d => d.data());
+          renderTasks();
+        })
+      );
+
+      unsubscribers.push(
+        onSnapshot(query(collection(db, "submissions"), where("uid", "==", fbUser.uid)), (snap) => {
+          state.submissions = snap.docs.map(d => d.data()).sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+          renderMySubmissions();
+        })
+      );
+
+      unsubscribers.push(
+        onSnapshot(query(collection(db, "premiumRequests"), where("uid", "==", fbUser.uid)), (snap) => {
+          state.premiumRequests = snap.docs.map(d => d.data());
+          renderTasks();
+        })
+      );
+
+      unsubscribers.push(
+        onSnapshot(query(collection(db, "posts"), orderBy("createdAt", "desc")), (snap) => {
+          state.posts = snap.docs.map(d => d.data());
+          renderPosts();
+        })
+      );
+    }
+
+    function updateUserUI(user) {
+      document.getElementById("authSection").classList.add("hidden");
+      document.getElementById("appSection").classList.remove("hidden");
+      document.getElementById("navUserName").innerText = user.name;
+      document.getElementById("navUserEmail").innerText = user.email;
+      document.getElementById("userBalance").innerText = user.balance || 0;
+      document.getElementById("profileAvatar").innerText = (user.name || "U")[0].toUpperCase();
+      document.getElementById("profileName").innerText = user.name;
+      document.getElementById("profileEmail").innerText = user.email;
+      document.getElementById("profileBalance").innerText = user.balance || 0;
+    }
+
+    window.loginWithGoogle = async () => {
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (err) {
+        alert("লগইন সমস্যা: " + err.message);
+      }
+    };
+
+    window.logout = async () => {
+      await signOut(auth);
+    };
+
+    window.switchTab = (tabId) => {
+      ["tasksTab", "feedTab", "profileTab"].forEach(id => document.getElementById(id).classList.add("hidden"));
+      ["btnTasksTab", "btnFeedTab", "btnProfileTab"].forEach(id => {
+        document.getElementById(id).classList.remove("text-indigo-600", "border-b-2", "border-indigo-600");
+        document.getElementById(id).classList.add("text-gray-500");
+      });
+      document.getElementById(tabId).classList.remove("hidden");
+      const activeBtn = "btn" + tabId.charAt(0).toUpperCase() + tabId.slice(1);
+      document.getElementById(activeBtn).classList.add("text-indigo-600", "border-b-2", "border-indigo-600");
+      document.getElementById(activeBtn).classList.remove("text-gray-500");
+    };
+
+    function renderTasks() {
+      const user = state.currentUser;
+      const container = document.getElementById("tasksList");
+      if (!container || !user) return;
+      container.innerHTML = "";
+      state.tasks.forEach(task => {
+        const isUnlocked = task.type === "free" || (user.unlockedTasks || []).includes(task.id);
+        const pendingReq = state.premiumRequests.find(r => r.taskId === task.id && r.status === "pending");
+        let actionBtn = isUnlocked
+          ? `<button onclick="openSubmitModal('${task.id}')" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">কাজ করুন</button>`
+          : pendingReq
+            ? `<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg text-xs font-semibold">অ্যাপ্রুভালের অপেক্ষায়</span>`
+            : `<button onclick="openBuyModal('${task.id}')" class="bg-amber-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">কিনুন (৳${task.buyPrice})</button>`;
+
+        container.innerHTML += `
+          <div class="bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2 py-0.5 rounded font-semibold ${task.type === "premium" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}">
+                  ${task.type === "premium" ? "প্রিমিয়াম" : "ফ্রি"}
+                </span>
+                <span class="text-xs font-bold text-indigo-600">আয়: ৳${task.reward}</span>
+              </div>
+              <h4 class="font-bold text-gray-800 mt-1">${task.title}</h4>
+              <p class="text-xs text-gray-500 mt-0.5">${task.desc}</p>
+            </div>
+            <div class="shrink-0">${actionBtn}</div>
+          </div>`;
+      });
+    }
+
+    window.openSubmitModal = (taskId) => {
+      selectedTaskId = taskId;
+      const task = state.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      document.getElementById("modalTaskTitle").innerText = task.title;
+      document.getElementById("modalTaskDesc").innerText = task.desc;
+      document.getElementById("workProofText").value = "";
+      document.getElementById("submitWorkModal").classList.remove("hidden");
+    };
+
+    window.confirmSubmitWork = async () => {
+      const user = state.currentUser;
+      const proof = document.getElementById("workProofText").value.trim();
+      if (!user || !proof) return alert("কাজের প্রমাণ দিন!");
+      const task = state.tasks.find(t => t.id === selectedTaskId);
+      const subId = "sub_" + Date.now();
+      await setDoc(doc(db, "submissions", subId), {
+        id: subId,
+        uid: user.uid,
+        email: user.email,
+        userName: user.name,
+        taskId: task.id,
+        taskTitle: task.title,
+        reward: Number(task.reward),
+        proof,
+        status: "pending",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      closeModal("submitWorkModal");
+      alert("কাজ জমা হয়েছে!");
+    };
+
+    window.openBuyModal = (taskId) => {
+      selectedTaskId = taskId;
+      const task = state.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      document.getElementById("premiumPriceText").innerText = "৳" + task.buyPrice;
+      document.getElementById("displayBkash").innerText = state.bkash || "সেট করা নেই";
+      document.getElementById("displayNagad").innerText = state.nagad || "সেট করা নেই";
+      document.getElementById("buyPremiumModal").classList.remove("hidden");
+    };
+
+    window.submitPremiumPurchase = async () => {
+      const user = state.currentUser;
+      const sender = document.getElementById("paymentSenderNum").value.trim();
+      const trx = document.getElementById("paymentTrxId").value.trim();
+      if (!user || !sender || !trx) return alert("নম্বর এবং TrxID দিন!");
+      const task = state.tasks.find(t => t.id === selectedTaskId);
+      const reqId = "req_" + Date.now();
+      await setDoc(doc(db, "premiumRequests", reqId), {
+        id: reqId,
+        uid: user.uid,
+        email: user.email,
+        userName: user.name,
+        taskId: task.id,
+        taskTitle: task.title,
+        amount: Number(task.buyPrice),
+        sender,
+        trx,
+        status: "pending",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      closeModal("buyPremiumModal");
+      alert("পেমেন্ট তথ্য পাঠানো হয়েছে।");
+    };
+
+    window.createPost = () => {
+      const user = state.currentUser;
+      const text = document.getElementById("postText").value.trim();
+      const fileInput = document.getElementById("postImageInput");
+      if (!user || (!text && !fileInput.files.length)) return alert("কিছু লিখুন বা ছবি সিলেক্ট করুন!");
+
+      const savePost = async (imgData = null) => {
+        const postId = "post_" + Date.now();
+        const payload = {
+          id: postId,
+          authorUid: user.uid,
+          authorName: user.name,
+          text,
+          createdAt: serverTimestamp()
+        };
+        if (imgData) payload.image = imgData;
+        await setDoc(doc(db, "posts", postId), payload);
+        document.getElementById("postText").value = "";
+        fileInput.value = "";
+      };
+
+      if (fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => savePost(e.target.result);
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        savePost();
+      }
+    };
+
+    window.addComment = async (postId) => {
+      const user = state.currentUser;
+      const input = document.getElementById("commentInput-" + postId);
+      const text = input.value.trim();
+      if (!user || !text) return;
+      const cmtId = "cmt_" + Date.now();
+      await setDoc(doc(db, "posts", postId, "comments", cmtId), {
+        id: cmtId,
+        authorUid: user.uid,
+        authorName: user.name,
+        text,
+        createdAt: serverTimestamp()
+      });
+      input.value = "";
+    };
+
+    function renderPosts() {
+      const container = document.getElementById("postsList");
+      if (!container) return;
+      container.innerHTML = "";
+      state.posts.forEach(post => {
+        container.innerHTML += `
+          <div class="bg-white p-4 rounded-xl shadow-sm space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-sm text-gray-800">${post.authorName}</span>
+            </div>
+            ${post.text ? `<p class="text-sm text-gray-700">${post.text}</p>` : ""}
+            ${post.image ? `<img src="${post.image}" class="rounded-lg max-h-64 w-full object-cover">` : ""}
+            <div class="border-t pt-2 space-y-2">
+              <div id="comments-${post.id}" class="space-y-1"></div>
+              <div class="flex gap-2">
+                <input type="text" id="commentInput-${post.id}" placeholder="মন্তব্য বা কথা লিখুন..." class="w-full border rounded-lg px-3 py-1 text-xs">
+                <button onclick="addComment('${post.id}')" class="bg-indigo-600 text-white px-3 py-1 rounded-lg text-xs">পাঠান</button>
+              </div>
+            </div>
+          </div>`;
+
+        onSnapshot(query(collection(db, "posts", post.id, "comments"), orderBy("createdAt", "asc")), (cSnap) => {
+          const box = document.getElementById("comments-" + post.id);
+          if (!box) return;
+          box.innerHTML = cSnap.docs.map(d => {
+            const c = d.data();
+            return `<div class="bg-gray-100 px-3 py-1.5 rounded-lg text-xs"><span class="font-bold text-indigo-600">${c.authorName}:</span> ${c.text}</div>`;
+          }).join("");
+        });
+      });
+    }
+
+    function renderMySubmissions() {
+      const container = document.getElementById("mySubmissionsList");
+      if (!container) return;
+      document.getElementById("profileWorkCount").innerText = state.submissions.length;
+      container.innerHTML = state.submissions.length ? "" : '<p class="text-xs text-gray-400">এখনো কোনো কাজ জমা দেননি।</p>';
+      state.submissions.forEach(sub => {
+        container.innerHTML += `
+          <div class="bg-white p-3 rounded-lg border flex justify-between items-center text-sm">
+            <div>
+              <p class="font-semibold">${sub.taskTitle}</p>
+              <p class="text-xs text-gray-500">আয়: ৳${sub.reward}</p>
+            </div>
+            <span class="text-xs px-2 py-1 rounded font-semibold ${sub.status === "approved" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}">
+              ${sub.status === "approved" ? "অ্যাপ্রুভড" : "পেন্ডিং"}
+            </span>
+          </div>`;
+      });
+    }
+
+    window.openAdminModal = async () => {
+      if (state.currentUser?.email !== ADMIN_EMAIL) return alert("শুধুমাত্র অনুমোদিত অ্যাডমিন প্রবেশ করতে পারবেন।");
+      const pinSnap = await getDoc(doc(db, "settings", "adminSecrets"));
+      if (pinSnap.exists()) state.adminPin = pinSnap.data().adminPin || "1234";
+      document.getElementById("adminPinInput").value = "";
+      document.getElementById("adminPinScreen").classList.remove("hidden");
+      document.getElementById("adminContent").classList.add("hidden");
+      document.getElementById("adminModal").classList.remove("hidden");
+    };
+
+    window.verifyAdminPin = () => {
+      if (document.getElementById("adminPinInput").value !== state.adminPin) return alert("ভুল পিন!");
+      document.getElementById("adminPinScreen").classList.add("hidden");
+      document.getElementById("adminContent").classList.remove("hidden");
+      onSnapshot(collection(db, "users"), (s) => { state.users = s.docs.map(d => d.data()); loadAdminDashboard(); });
+      onSnapshot(collection(db, "submissions"), (s) => { state.allSubs = s.docs.map(d => d.data()); loadAdminDashboard(); });
+      onSnapshot(collection(db, "premiumRequests"), (s) => { state.allReqs = s.docs.map(d => d.data()); loadAdminDashboard(); });
+    };
+
+    function loadAdminDashboard() {
+      const subs = state.allSubs || [];
+      const reqs = state.allReqs || [];
+      document.getElementById("statTotalUsers").innerText = state.users.length;
+      document.getElementById("statPendingWorks").innerText = subs.filter(s => s.status === "pending").length;
+      document.getElementById("statPendingPayments").innerText = reqs.filter(p => p.status === "pending").length;
+      document.getElementById("adminBkashInput").value = state.bkash;
+      document.getElementById("adminNagadInput").value = state.nagad;
+
+      document.getElementById("adminPaymentsList").innerHTML = reqs.filter(p => p.status === "pending").map(req => `
+        <div class="bg-pink-50 p-3 rounded-lg border flex justify-between items-center">
+          <div><p class="font-bold">${req.userName} (${req.taskTitle})</p><p class="text-xs">নম্বর: ${req.sender} | TrxID: <b>${req.trx}</b> | ৳${req.amount}</p></div>
+          <button onclick="approvePremium('${req.id}', '${req.uid}', '${req.taskId}')" class="bg-green-600 text-white px-3 py-1 rounded text-xs">অ্যাপ্রুভ</button>
+        </div>`).join("");
+
+      document.getElementById("adminSubmissionsList").innerHTML = subs.filter(s => s.status === "pending").map(sub => `
+        <div class="bg-amber-50 p-3 rounded-lg border flex justify-between items-center">
+          <div><p class="font-bold">${sub.userName} - ${sub.taskTitle} (৳${sub.reward})</p><p class="text-xs text-gray-600">প্রমাণ: ${sub.proof}</p></div>
+          <button onclick="approveWork('${sub.id}', '${sub.uid}', ${sub.reward})" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs">টাকা দিন</button>
+        </div>`).join("");
+
+      document.getElementById("adminUsersList").innerHTML = state.users.map(u => `
+        <div class="bg-white p-2.5 rounded-lg border flex justify-between items-center">
+          <div><p class="font-bold">${u.name} <span class="text-xs font-normal text-gray-500">(${u.email})</span></p><p class="text-xs text-green-600">ব্যালেন্স: ৳${u.balance || 0}</p></div>
+          <button onclick="deleteUser('${u.uid}')" class="bg-red-500 text-white px-3 py-1 rounded text-xs">ডিলিট</button>
+        </div>`).join("");
+    }
+
+    window.saveAdminSettings = async () => {
+      const bkash = document.getElementById("adminBkashInput").value.trim();
+      const nagad = document.getElementById("adminNagadInput").value.trim();
+      const newPin = document.getElementById("adminNewPinInput").value.trim();
+      await setDoc(doc(db, "settings", "platform"), { bkash, nagad, updatedAt: serverTimestamp() });
+      if (newPin) await setDoc(doc(db, "settings", "adminSecrets"), { adminPin: newPin, updatedAt: serverTimestamp() });
+      alert("সেটিংস সেভ হয়েছে!");
+    };
+
+    window.togglePriceInput = () => {
+      document.getElementById("newTaskBuyPrice").classList.toggle("hidden", document.getElementById("newTaskType").value !== "premium");
+    };
+
+    window.addNewTask = async () => {
+      const title = document.getElementById("newTaskTitle").value.trim();
+      const reward = Number(document.getElementById("newTaskReward").value);
+      const type = document.getElementById("newTaskType").value;
+      const buyPrice = type === "premium" ? (Number(document.getElementById("newTaskBuyPrice").value) || 0) : 0;
+      const desc = document.getElementById("newTaskDesc").value.trim();
+      if (!title || !reward) return alert("কাজের নাম ও মূল্য দিন!");
+      const taskId = "task_" + Date.now();
+      await setDoc(doc(db, "tasks", taskId), { id: taskId, title, desc, reward, type, buyPrice, createdAt: serverTimestamp() });
+      alert("নতুন কাজ যুক্ত হয়েছে!");
+    };
+
+    window.approvePremium = async (reqId, uid, taskId) => {
+      const batch = writeBatch(db);
+      batch.update(doc(db, "premiumRequests", reqId), { status: "approved", updatedAt: serverTimestamp() });
+      batch.update(doc(db, "users", uid), { unlockedTasks: arrayUnion(taskId), updatedAt: serverTimestamp() });
+      await batch.commit();
+    };
+
+    window.approveWork = async (subId, uid, reward) => {
+      const batch = writeBatch(db);
+      batch.update(doc(db, "submissions", subId), { status: "approved", updatedAt: serverTimestamp() });
+      batch.update(doc(db, "users", uid), { balance: increment(Number(reward)), updatedAt: serverTimestamp() });
+      await batch.commit();
+    };
+
+    window.deleteUser = async (uid) => {
+      if (!confirm("নিশ্চিত ডিলিট করতে চান?")) return;
+      await deleteDoc(doc(db, "users", uid));
+    };
+
+    window.closeModal = (id) => document.getElementById(id).classList.add("hidden");
+  </script>
+</body>
+            </html>
